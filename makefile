@@ -24,3 +24,7 @@ $(BUILD_FOLDER)/%.app : %.c aoc_common.h
 day01: $(BUILD_FOLDER)/$$@.app
 	@echo Running $<
 	@$< $(INPUTS_FOLDER)/$@.txt
+
+day02: $(BUILD_FOLDER)/$$@.app
+	@echo Running $<
+	@$< $(INPUTS_FOLDER)/$@.txt
