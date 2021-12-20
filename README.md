@@ -1,7 +1,3 @@
-# aoc_2021
-Solving the Advent of Code puzzles in 2021 using simple C, maybe, as a kind of code kata, maybe.
-
-
 # Advent of Code 2021: Code Kata in C
 
 I'm solving the [2021 Advent of Code](https://adventofcode.com/2021) puzzles using simple C, as a kind of daily code kata. I intend to stick with bog-standard ANSI-C89 for the most part, except for the single-line comment style. So maybe we call it C89-ish, but then there are also some later libc and 3rd party things that I've used. I have no idea what kind of patterns and idioms will creep in, as my head's version of C programming is a mix of like 20 different languages since I first learned and used pre-ANSI C.
