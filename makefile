@@ -7,7 +7,7 @@ INPUTS_FOLDER=inputs
 
 .PHONY: clean all
 
-all: day01
+all: day01 day02 day03 day04
 
 clean:
 	@echo Clean: removing files from ./$(BUILD_FOLDER) folder
@@ -30,5 +30,9 @@ day02: $(BUILD_FOLDER)/$$@.app
 	@$< $(INPUTS_FOLDER)/$@.txt
 
 day03: $(BUILD_FOLDER)/$$@.app
+	@echo Running $<
+	@$< $(INPUTS_FOLDER)/$@.txt
+
+day04: $(BUILD_FOLDER)/$$@.app
 	@echo Running $<
 	@$< $(INPUTS_FOLDER)/$@.txt
