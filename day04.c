@@ -50,18 +50,28 @@ board load_board(FILE *f) {
     return b;
 }
 
+void reset_boards(board *b, int count) {
+    for (int i = 0; i < count; i++) {
+        free(b[i].found);
+        b[i].found = calloc(BOARD_SIZE, sizeof(bool));
+        b[i].winner = false;
+    }
+}
+
 bool check_winner(board b) {
     // check for winning rows
     for (int r = 0; r < BOARD_ROWS; r++) {
         bool *founds = b.found + (r * BOARD_COLS);
-        if (founds[0] && founds[1] && founds[2] && founds[3] && founds[4])
+        if (founds[0] && founds[1] && founds[2] && founds[3] && founds[4]) {
             return true;
+        }
     }
 
     for (int c = 0; c < BOARD_COLS; c++) {
-        bool *founds = b.found + (c * BOARD_ROWS);
-        if (founds[0] && founds[1 * BOARD_COLS] && founds[2 * BOARD_COLS] && founds[3 * BOARD_COLS] && founds[4 * BOARD_COLS])
+        bool *founds = b.found + c;
+        if (founds[0] && founds[1 * BOARD_COLS] && founds[2 * BOARD_COLS] && founds[3 * BOARD_COLS] && founds[4 * BOARD_COLS]) {
             return true;
+        }
     }
 
     return false;
@@ -128,21 +138,42 @@ int main(int argc, char **argv) {
     if (args.run_first) {
         for (int i = 0; i < ball_count; i++) {
             for (int b = 0; b < board_count; b++) {
-                apply_ball(boards + b, balls[i]);
-                if (boards[b].winner) {
-                    int sum = sum_unmarked(boards[b]);
-                    printf("first, winner in board %d: last number %d, sum of unmarked numbers %d: product is %d\n",
-                        b, balls[i], sum, sum * balls[i]);
-                    // force breaking out of the outer loop
-                    i = ball_count;
-                    break;
+                if (!boards[b].winner) {
+                    apply_ball(boards + b, balls[i]);
+                    if (boards[b].winner) {
+                        int sum = sum_unmarked(boards[b]);
+                        printf("first, winner in board %d: last ball %d, sum of unmarked numbers %d: product is %d\n",
+                            b, balls[i], sum, sum * balls[i]);
+                        // force breaking out of the outer loop
+                        i = ball_count;
+                        break;
+                    }
                 }
             }
         }
     }
 
     if (args.run_second) {
-        // printf("second, product of position %d and depth %d (with aim calculation) is: %d\n", position, depth, position * depth);
+        int last_board;
+        short last_ball = 0;
+
+        reset_boards(boards, board_count);
+
+        for (int i = 0; i < ball_count; i++) {
+            for (int b = 0; b < board_count; b++) {
+                if (!boards[b].winner) {
+                    apply_ball(boards + b, balls[i]);
+                    if (boards[b].winner) {
+                        last_board = b;
+                        last_ball = balls[i];
+                    }
+                }
+            }
+        }
+
+        int sum = sum_unmarked(boards[last_board]);
+        printf("second, last winner in board %d: last ball %d, sum of unmarked numbers %d: product is %d\n",
+            last_board, last_ball, sum, sum * last_ball);
     }
 
     return 0;
