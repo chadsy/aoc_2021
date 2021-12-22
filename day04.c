@@ -12,6 +12,15 @@
 // column of 'found' numbers on the boards. In C, there are no strong data
 // structures for this, so, there's a question of how to store the boards and
 // their 'found' status bits for each of the spots.
+//
+// Wasn't too bad to cobble a brute-force solution.
+//
+// Part 2 was same basic logic, except find the last winning card as the drawn
+// numbers progress. This meant just reusing everything we'd already constructed
+// except for the 'found' and 'winner' parts of the boards, which needed to be
+// reset. Then updating a 'last board' variable as we place balls and evaluate
+// winners. I did discover a bug in that once a board is a winner, no more
+// numbers should be placed on it.
 
 #include "aoc_common.h"
 #include <stdlib.h>
