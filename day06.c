@@ -26,9 +26,12 @@
 #include <stdbool.h>
 
 #define GESTATION_PERIOD    9
+#define FISH_FORMAT         "%lld"
+typedef long long fishcount;
+typedef long long fishsum;
 
-int sum_all_fishes(int *periods) {
-    int sum = 0;
+fishsum sum_all_fishes(fishcount *periods) {
+    fishsum sum = 0;
 
     for (int i = 0; i < GESTATION_PERIOD; i++) {
         sum += periods[i];
@@ -37,34 +40,17 @@ int sum_all_fishes(int *periods) {
     return sum;
 }
 
-// void dump_periods(int *periods) {
-//     for (int i = 0; i < GESTATION_PERIOD; i++) {
-//         printf("%d ", periods[i]);
-//     }
-//     printf("\n");
-// }
-
-void rotate_periods(int *periods) {
-    int zero = *periods;
-    memcpy(periods, periods + 1, sizeof(int) * (GESTATION_PERIOD - 1));
+void rotate_periods(fishcount *periods) {
+    fishcount zero = *periods;
+    memcpy(periods, periods + 1, sizeof(fishcount) * (GESTATION_PERIOD - 1));
     periods[GESTATION_PERIOD - 3] += zero;
     periods[GESTATION_PERIOD - 1] = zero;
-}
-
-void simulate_periods(int *periods, int days) {
-    // printf("day %d: ", 0);
-    // dump_periods(periods);
-    for (int day = 1; day <= days; day++) {
-        rotate_periods(periods);
-        // printf("day %d: ", day);
-        // dump_periods(periods);
-    }
 }
 
 int main(int argc, char **argv) {
     runargs args = parse_args(argc, argv);
 
-    int periods[GESTATION_PERIOD + 1] = {};
+    fishcount periods[GESTATION_PERIOD + 1] = {};
     int ch;
 
     // the cycles are all single-digit so the parsing is pretty easy
@@ -76,15 +62,27 @@ int main(int argc, char **argv) {
     }
 
     if (args.run_first) {
+        fishcount fishes[GESTATION_PERIOD + 1];
+        memcpy(fishes, periods, sizeof(fishes));
         int days = 80;
-        simulate_periods(periods, days);
-        int sum = sum_all_fishes(periods);
+        for (int day = 0; day < days; day++) {
+            rotate_periods(fishes);
+        }
 
-        printf("first, sum of all fishes after %d days: %d\n", days, sum);
+        fishsum sum = sum_all_fishes(fishes);
+        printf("first, sum of all fishes after %d days: " FISH_FORMAT "\n", days, sum);
     }
 
     if (args.run_second) {
-        // printf("second, product of position %d and depth %d (with aim calculation) is: %d\n", position, depth, position * depth);
+        fishcount fishes[GESTATION_PERIOD + 1];
+        memcpy(fishes, periods, sizeof(fishes));
+        int days = 256;
+        for (int day = 0; day < days; day++) {
+            rotate_periods(fishes);
+        }
+
+        fishsum sum = sum_all_fishes(fishes);
+        printf("second, sum of all fishes after %d days: " FISH_FORMAT "\n", days, sum);
     }
 
     return 0;
