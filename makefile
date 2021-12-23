@@ -48,3 +48,8 @@ day06: $(BUILD_FOLDER)/$$@.app
 day07: $(BUILD_FOLDER)/$$@.app
 	@echo Running $<
 	@$< $(INPUTS_FOLDER)/$@.txt
+
+day08: $(BUILD_FOLDER)/$$@.app
+	@echo Running $<
+	@$< $(INPUTS_FOLDER)/$@.txt
+# 	@$< $(INPUTS_FOLDER)/sample08.txt

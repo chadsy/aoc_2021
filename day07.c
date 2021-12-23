@@ -35,15 +35,7 @@
 #define MAX_SUBS    1000
 
 int compare_crabs(const void *a, const void *b) {
-    const short *na = (const short *)a;
-    const short *nb = (const short *)b;
-
-    if (*na < *nb)
-        return -1;
-    else if (*na == *nb)
-        return 0;
-    else
-        return 1;
+    return (*(const short *)a - *(const short *)b);
 }
 
 int score_exponential_fuel(short *crabs, short crabcount, int target) {
