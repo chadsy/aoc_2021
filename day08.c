@@ -15,6 +15,41 @@
 // Obvs, part 2 will involve something more complex using the junk on the left.
 // It's clear that the pattern matching will come, and since the segments appear
 // in different orders it will be useful to sort the segments within the pattern.
+//
+// So, yeah, Part 2. Every line represents a different encoding. So the trick is
+// to deduce the encoding based on using length to identify the 1, 4, 7, 8
+// segments. So for example, finding a len 3 (7) and comparing to it the segments
+// from any found len 2 (1) will tell you what segment label is the top horz
+// segment. I guess there's a whole set of rules that I need think about and
+// write code to implement.
+//
+// Additionally, I have the question of whether it's interesting at all to try
+// to be smart and parse all this shit and hydrate date structures. I suspect
+// no. So guess I'll simplify and focus the solution to part 2 on deducing each
+// line's thing. Aside from the deduction logic, there's nothing to store for
+// any analysis.
+//
+// Further, it seems even simpler. I don't have to decode these or even try to
+// understand which segments map to which letter. I can just see how many
+// segment labels, whatever they are for a given line, are common with known
+// values, for digits of the same length. 1 and 8 are useless, 4 & 7 are key.
+//
+// So there's a truth table that looks like this:
+//        common with
+// 7-seg    4     7      length
+//  0       3     3         6
+//  1       -     -         2
+//  2       2     2         5
+//  3       3     2         5
+//  4       -     -         4
+//  5       3     2         5
+//  6       3     2         6
+//  7       -     -         3
+//  8       -     -         7
+//  9       4     3         6
+//
+// At the end of this, I wrote like 4 different versions of these two parts,
+// each one simpler and more 'insightful' and 'constrained' than the last.
 
 #include "aoc_common.h"
 #include <stdlib.h>
@@ -22,112 +57,103 @@
 #include <ctype.h>
 
 #define SEGMENTS    7
-#define DIGITS      10
-#define PATTERNS    10
 #define SIGNALS     4
 
-typedef struct {
-    char digit;
-    char segments[SEGMENTS + 1];
-} digit_t;
+int count_shared_segments(char *signal, char *reference) {
+    int shared = 0;
 
-typedef union {
-    struct {
-        digit_t *patterns[PATTERNS];
-        digit_t *signals[SIGNALS];
-    } d;
-    digit_t *raw[PATTERNS + SIGNALS];
-} noteentry_t;
-
-digit_t digits[] = {
-    { 0, "abcefg" },
-    { 1, "cf" },
-    { 2, "acdeg" },
-    { 3, "acdfg" },
-    { 4, "bcdf" },
-    { 5, "abdfg" },
-    { 6, "abdefg" },
-    { 7, "acf" },
-    { 8, "abcdefg" },
-    { 9, "abcdfg" }
-};
-
-int compare_segments(const void *a, const void *b) {
-    return (*(const char *)a - *(const char *)b);
-}
-
-digit_t *find_digit(char *pattern) {
-    int l = strlen(pattern);
-    if (l == 2)
-        return digits + 1;
-    else if (l == 3)
-        return digits + 7;
-    else if (l == 4)
-        return digits + 4;
-    else if (l == 7)
-        return digits + 8;
-    else {
-        for (int i = 0; i < countof(digits); i++) {
-            if (!strcmp(pattern, digits[i].segments))
-                return digits + i;
-        }
+    while (*signal) {
+        if (strchr(reference, *signal))
+            shared++;
+        signal++;
     }
 
-    return NULL;
+    return shared;
 }
 
-// noteentry_t parse_line(char *line) {
-//     noteentry_t note = {};
-//     char *p = line;
-//     int ni = 0;
+int infer_digit(char *sig, char *four, char *seven) {
+    int l = strlen(sig);
+    int shared4, shared7;
 
-//     while (*p) {
-//         char buf[20], *ch = buf;
-//         while (isalpha(*p)) {
-//             *ch = *p;
-//             ch++;
-//             p++;
-//         }
-
-//         while (isspace(*p) || *p == '|')
-//             p++;
-//         *ch = '\0';
-//     }
-
-
-//     return note;
-// }
-
-int count_known_digits(char *pattern) {
-    int known = 0;
-    char *p = pattern;
-
-    while (*p && *p != '|')
-        p++;
-    p++;
-
-    // printf("in pattern: %s", pattern);
-
-    while (*p) {
-        char buf[20], *ch = buf;
-        while (isalpha(*p)) {
-            *ch = *p;
-            ch++;
-            p++;
+    switch (l) {
+    case 2:
+        return 1;
+    case 3:
+        return 7;
+    case 4:
+        return 4;
+    case 7:
+        return 8;
+    case 5:
+    case 6:
+        shared4 = count_shared_segments(sig, four);
+        shared7 = count_shared_segments(sig, seven);
+        if (l == 5) {
+            // figure out 2, 3, 5 based on shared segments
+            if (shared7 == 3)
+                return 3;
+            else if (shared4 == 2)
+                return 2;
+            else
+                return 5;
         }
-        *ch = '\0';
+        else {
+            // figure out 6, 9, 0 based on shared segments
+            if (shared7 == 2)
+                return 6;
+            else if (shared4 == 4)
+                return 9;
+            else
+                return 0;
+        }
+    }
+    return -1;
+}
 
-        int l = ch - buf;
-        // printf("looking for tokens of length %d\n", l);
+void find_four_seven(char *line, char *four, char *seven) {
+    char *org = line;
+    // find an example of 4 & 3 segments
+    while (*line && (!*four || !*seven)) {
+        char tmp[SEGMENTS + 1] = {};
+
+        while (isspace(*line))
+            line++;
+
+        if (sscanf(line, "%s", tmp) == 1) {
+            if (strlen(tmp) == 3)
+                strcpy(seven, tmp);
+            else if (strlen(tmp) == 4)
+                strcpy(four, tmp);
+
+            line += strlen(tmp);
+        }
+        else {
+            printf("error: unable to parse a pattern at '%-.10s'\n       ...from line %s\n", line, org);
+            break;
+        }
+    }
+}
+
+int count_known_digits(char *line) {
+    while (*line && *line != '|')
+        line++;
+    while (!isalpha(*line))
+        line++;
+
+    int known = 0;
+    while (*line) {
+        char *start = line;
+        while (isalpha(*line))
+            line++;
+
+        int l = line - start;
         if (l == 2 || l == 3 || l == 4 || l == 7) {
-            // printf(" found known %s\n", buf);
             known++;
         }
 
-        while (*p && isspace(*p))
-            p++;
+        while (*line && !isalpha(*line))
+            line++;
     }
-
     return known;
 }
 
@@ -135,16 +161,52 @@ int main(int argc, char **argv) {
     runargs args = parse_args(argc, argv);
     char buf[128];
 
-    int known_digits = 0;
-    while (fgets(buf, sizeof(buf) - 1, args.input)) {
-        known_digits += count_known_digits(buf);
-    }
-
     if (args.run_first) {
+        int known_digits = 0;
+        while (fgets(buf, sizeof(buf) - 1, args.input)) {
+            known_digits += count_known_digits(trim(buf));
+        }
+
         printf("first, the number of unique known digits is: %d\n", known_digits);
     }
 
     if (args.run_second) {
+        rewind(args.input);
+
+        long sum = 0;
+        while (fgets(buf, sizeof(buf) - 1, args.input)) {
+            trim(buf);
+            char four[SEGMENTS + 1] = {};
+            char seven[SEGMENTS + 1] = {};
+
+            find_four_seven(buf, four, seven);
+
+            // Skip past the pattern | signal delimeter
+            char *line = buf;
+            while (*line && *line != '|')
+                line++;
+            while (!isalpha(*line))
+                line++;
+
+            char signal[SIGNALS + 1] = {};
+            char *dig = signal;
+            while (*line) {
+                char tmp[SEGMENTS + 1];
+                while (isspace(*line))
+                    line++;
+                if (sscanf(line, "%s", tmp) == 1) {
+                    int d = infer_digit(tmp, four, seven);
+                    *dig = '0' + d;
+                    dig++;
+                }
+
+                line += strlen(tmp);
+            }
+
+            sum += atoi(signal);
+
+        }
+        printf("second, the sum of signal digits is: %ld\n", sum);
     }
 
     return 0;
