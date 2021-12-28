@@ -33,7 +33,10 @@
 // So here near the end of Part 2, I have a solution that works with the sample
 // data for both Part 1 and Part 2. Sadly, it fails for both parts in the real
 // data :( In Part 1, it gets one too many ']' for an extra 57 points. And then
-// 1048024721 is too low for Part 2. Ugh.
+// 1048024721 is too low for Part 2. Ugh. So I folded back to an earlier set of
+// code and fixed part 1. Then tackled part 2 after I sorted out some crap
+// around the size of the integer needed to carry the score, fixed the sort
+// and median logic, etc.
 
 #include "aoc_common.h"
 #include <stdlib.h>
@@ -79,8 +82,8 @@ char *get_seek_stack() {
     return rev;
 }
 
-int score_seek_stack() {
-    int score = 0;
+long score_seek_stack() {
+    long score = 0;
 
     char *completion = get_seek_stack();
 
@@ -91,33 +94,19 @@ int score_seek_stack() {
         completion++;
     }
 
-    printf("scoring '%s' at %d\n", get_seek_stack(), score);
-
     return score;
 }
-
-static char capture[256];
-char *base_line;
 
 char seek_closure(char **line, char seek) {
     char illegal = 0;
 
-    // static char capture[256];
-    static int level = 0;
-    level++;
-    // if (level == 1)
-    //     sprintf(capture, "from '%s' seeking '%c'\n", *line, seek);
-
-    // printf("from '%s' seeking '%c' at %d\n", *line, seek, level);
-    push_seek(seek);
+    if (seek) {
+        push_seek(seek);
+    }
 
     while (**line && illegal == 0) {
         if (**line == seek) {
             pop_seek();
-            // printf("found expected '%c' at %d\n", seek, level);
-            // (*line)++;
-            // continue;
-            level--;
             return 0;
         }
 
@@ -140,11 +129,6 @@ char seek_closure(char **line, char seek) {
             break;
         default:
             illegal = **line;
-            if (illegal == ']') {
-                printf("%s", capture);
-                printf("returning unexpected '%c' at %ld from level %d, sought %c\n", illegal, *line - base_line, level, seek);
-            }
-            level--;
             return illegal;
         }
 
@@ -153,95 +137,19 @@ char seek_closure(char **line, char seek) {
         }
     }
 
-    // if (illegal)
-    //     printf("(tunnel from level %d)\n", level);
-    level--;
-
     return illegal;
 }
 
-void alt_completion_evaluator(char *line) {
-    int depth[4] = {};
-    char *starts = "([{>";
-    char *finishes = ")]}>";
-
-    while (*line) {
-        char *ptr = strchr(starts, *line);
-
-        if (ptr) {
-            depth[ptr - starts]++;
-        }
-        else {
-            ptr = strchr(finishes, *line);
-            depth[ptr - finishes]--;
-        }
-
-        line++;
-    }
-
-    printf("%c:%d %c:%d %c:%d %c:%d\n",
-        finishes[0], depth[0],
-        finishes[1], depth[1],
-        finishes[2], depth[2],
-        finishes[3], depth[3]
-        );
-}
-
-int score_corrupt_line(char *line) {
-    int score = 0;
-    char illegal = 0;
-
-    sprintf(capture, "evaluating '%s'\n", line);
-    // printf("evaluating '%s'\n", line);
-
-    reset_seek();
-    base_line = line;
-
-    while (*line && !illegal) {
-        if (*line == '(') {
-            line++;
-            illegal = seek_closure(&line, ')');
-        }
-        else if (*line == '[') {
-            line++;
-            illegal = seek_closure(&line, ']');
-        }
-        else if (*line == '{') {
-            line++;
-            illegal = seek_closure(&line, '}');
-        }
-        else if (*line == '<') {
-            line++;
-            illegal = seek_closure(&line, '>');
-        }
-        line++;
-    }
-
-    switch (illegal) {
-    case ')':
-        score = 3;
-        break;
-    case ']':
-        score = 57;
-        break;
-    case '}':
-        score = 1197;
-        break;
-    case '>':
-        score = 25137;
-        break;
-    }
-
-    // if (score)
-    //     printf("illegal character '%c': %d\n", illegal, score);
-    // else
-    //     printf("no error\n");
-
-    return score;
-}
-
 int compare_scores(const void *a, const void *b) {
-    return (*(const int *)a - *(const int *)b);
+    long ax = *(const long *)a;
+    long bx = *(const long *)b;
+
+    if (ax < bx)
+        return -1;
+    else if (ax == bx)
+        return 0;
+    else
+        return 1;
 }
 
 int main(int argc, char **argv) {
@@ -255,55 +163,58 @@ int main(int argc, char **argv) {
         lines[line_count++] = strdup(trim(buf));
     }
 
-    // lines[line_count++] = "[({(<(())[]>[[{[]{<()<>>";   // 0, good
-    // lines[line_count++] = "[(()[<>])]({[<{<<[]>>(";     // 1,
-    // lines[line_count++] = "(((({<>}<{<{<>}{[]{[]{}";
-    // lines[line_count++] = "{([(<{}[<>[]}>{[]{[(<()>";   // 2, bad, found }
-    // lines[line_count++] = "[[<[([]))<([[{}[[()]]]";  // 4, bad, found )
-    // lines[line_count++] = "[{[{({}]{}}([{[{{{}}([]"; // 5, bad, found ]
-    // lines[line_count++] = "{{[]()<>}}";
-
-    // args.run_first = false;
     if (args.run_first) {
         int score = 0;
 
         for (int i = 0; i < line_count; i++) {
-            score += score_corrupt_line(lines[i]);
+            char *base_line = lines[i];
+
+            char unexpected = seek_closure(&base_line, 0);
+
+            switch (unexpected) {
+            case ')':
+                score += 3;
+                break;
+            case ']':
+                score += 57;
+                break;
+            case '}':
+                score += 1197;
+                break;
+            case '>':
+                score += 25137;
+                break;
+            }
         }
 
         printf("first, the sum of corruption scores is: %d\n", score);
     }
 
-    args.run_second = false;
     if (args.run_second) {
-        int scores[MAX_LINES] = {};
+        long scores[MAX_LINES] = {};
         int score_count = 0;
 
         for (int i = 0; i < line_count; i++) {
-            int score = score_corrupt_line(lines[i]);
+            char *base_line = lines[i];
+
+            reset_seek();
+            char unexpected = seek_closure(&base_line, 0);
 
             // we've scored it an accumulated any interesting remaining seeks
             // but we only want to deal with it if the score is 0, meaning, it's
             // not corrupt.
-            if (score == 0) {
+            if (unexpected == 0) {
                 scores[score_count++] = score_seek_stack();
-                // printf("seek stack for '%s' is %s\n", lines[i], get_seek_stack());
             }
         }
 
         // sort the scores array
-        qsort(scores, score_count, sizeof(int), compare_scores);
+        qsort(scores, score_count, sizeof(long), compare_scores);
 
         // find the median of the array
-        int median = scores[score_count / 2];
+        long median = scores[score_count / 2];
 
-        // int score = 0;
-        // for (int i = 0; i < score_count; i++) {
-        //     printf("leftovers %s\n", scores[i]);
-        //     score += score_completion_string(scores[i])
-        // }
-
-        printf("second, the median score of completion strings is: %d\n", median);
+        printf("second, the median score of completion strings is: %ld\n", median);
     }
 
     return 0;
