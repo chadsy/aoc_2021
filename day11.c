@@ -24,7 +24,7 @@
 #define AT(octos, r, c)     (octos[SUBSCRIPT((r), (c))])
 
 void reset_flashes(char *octos);
-int increment_neighbors(char *octos, int idx);
+void increment_neighbors(char *octos, int idx);
 void dump_octos(char *octos);
 
 int main(int argc, char **argv) {
@@ -33,71 +33,116 @@ int main(int argc, char **argv) {
 
     int rows = 0;
     char octos[OCTO_COUNT] = {};
+    char org_octos[OCTO_COUNT] = {};
 
     while (rows < OCTO_ROWS && fgets(buf, sizeof(buf) - 1, args.input)) {
         for (int c = 0; c < OCTO_COLS; c++)
             buf[c] -= '0';
-        memmove(octos + (rows * OCTO_COLS), buf, OCTO_COLS);
+        memcpy(octos + (rows * OCTO_COLS), buf, OCTO_COLS);
         rows++;
     }
 
-    printf("--- start ---\n");
-    dump_octos(octos);
+    memcpy(org_octos, octos, sizeof(org_octos));
 
     if (args.run_first) {
         int flashes = 0;
-        int steps = 10;   // ENERGY_STEPS;
+        int steps = ENERGY_STEPS;
 
-        for (int step = 1; step <= steps; step++) {
-            for (int i = 0; i < OCTO_COUNT; i++)
-                octos[i]++;
-
+        for (int step = 0; step < steps; step++) {
             int fl = 0;
+
             for (int i = 0; i < OCTO_COUNT; i++) {
-                if (octos[i] == 10)
-                    fl += increment_neighbors(octos, i);
+                octos[i]++;
+                if (octos[i] == 10) {
+                    increment_neighbors(octos, i);
+                }
             }
 
-            printf("--- step %d ---\n", step);
-            // int fl = count_flashes(octos);
+            for (int i = 0; i < OCTO_COUNT; i++) {
+                if (octos[i] > 9)
+                    fl++;
+            }
+
             flashes += fl;
-            dump_octos(octos);
-            printf("  %d flashes\n", fl);
+
             reset_flashes(octos);
-            // dump_octos(octos);
-            // printf("\n");
         }
 
         printf("first, number of flashes after %d steps: %d\n", steps, flashes);
     }
 
+    memcpy(octos, org_octos, sizeof(octos));
+
     if (args.run_second) {
-        // printf("second, product of position %d and depth %d (with aim calculation) is: %d\n", position, depth, position * depth);
+        int all_flashed_at = 0;
+
+        for (int step = 1; ; step++) {
+            int fl = 0;
+
+            for (int i = 0; i < OCTO_COUNT; i++) {
+                octos[i]++;
+                if (octos[i] == 10) {
+                    increment_neighbors(octos, i);
+                }
+            }
+
+            for (int i = 0; i < OCTO_COUNT; i++) {
+                if (octos[i] > 9)
+                    fl++;
+            }
+
+            if (fl == 100) {
+                all_flashed_at = step;
+                break;
+            }
+
+            reset_flashes(octos);
+        }
+
+        printf("second, the step where all octos flashed: %d\n", all_flashed_at);
     }
 
     return 0;
 }
 
-int increment_neighbors(char *octos, int idx) {
+void increment_neighbors(char *octos, int idx) {
     int r = idx / OCTO_COLS;
     int c = idx % OCTO_COLS;
-    int flashes = 0;
 
-    for (int ry = max(0, r - 1); ry <= min(OCTO_ROWS, r + 1); ry++) {
-        for (int cx = max(0, c - 1); cx <= min(OCTO_COLS, c + 1); cx++) {
+    for (int ry = -1; ry <= 1; ry++) {
+        for (int cx = -1; cx <= 1; cx++) {
             if (ry == 0 && cx == 0)
                 continue;
+            if (r + ry < 0 || r + ry >= OCTO_ROWS)
+                continue;
+            if (c + cx < 0 || c + cx >= OCTO_COLS)
+                continue;
 
-            AT(octos, ry, cx)++;
+            // printf("r:%d c:%d ry:%d cx:%d - idx:%d\n", r, c, ry, cx, SUBSCRIPT(r + ry,c + cx));
 
-            if (AT(octos, ry, cx) == 10) {
-                flashes++;
-                flashes += increment_neighbors(octos, SUBSCRIPT(ry, cx));
+            AT(octos, r + ry, c + cx)++;
+
+            if (AT(octos, r + ry, c + cx) == 10) {
+                // flashes += increment_neighbors(octos, SUBSCRIPT(ry, cx));
+                increment_neighbors(octos, SUBSCRIPT(r + ry, c + cx));
+                // flashes++;
             }
         }
     }
 
-    return flashes;
+    // for (int ry = max(0, r - 1); ry <= min(OCTO_ROWS, r + 1); ry++) {
+    //     for (int cx = max(0, c - 1); cx <= min(OCTO_COLS, c + 1); cx++) {
+    //         if (ry == 0 && cx == 0)
+    //             continue;
+
+    //         AT(octos, ry, cx)++;
+
+    //         if (AT(octos, ry, cx) == 10) {
+    //             flashes++;
+    //             flashes += increment_neighbors(octos, SUBSCRIPT(ry, cx));
+    //         }
+    //     }
+    // }
 
     // for (int i = -1; i <= 1; i++) {
     //     for (int j = -1; j <= 1; j++) {
