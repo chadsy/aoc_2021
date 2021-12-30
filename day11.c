@@ -10,6 +10,15 @@
 // arithmetic. Makes for some terrible expressions, esp around the 'neighbor'
 // calculations. So there's a bit of struggle with that stuff. That, and a
 // possible overcomplication of the rules for applying a step.
+//
+// There's some trickiness in using recursion to incrementally light up the
+// neighbors. Lots of different algos and factoring and attempts at simplifcation
+// that didn't pan out. Finally got it.
+//
+// Part 2 is just like 1 in terms of process, except instead of counting flashes
+// for 100 steps, let the steps run and count them until all octopuses fire at
+// once, meaning the per-step flash count == 100. That's pretty simple after
+// getting the flash logic right in the first part. Whee....
 
 #include "aoc_common.h"
 #include <stdlib.h>
@@ -118,65 +127,13 @@ void increment_neighbors(char *octos, int idx) {
             if (c + cx < 0 || c + cx >= OCTO_COLS)
                 continue;
 
-            // printf("r:%d c:%d ry:%d cx:%d - idx:%d\n", r, c, ry, cx, SUBSCRIPT(r + ry,c + cx));
-
             AT(octos, r + ry, c + cx)++;
 
             if (AT(octos, r + ry, c + cx) == 10) {
-                // flashes += increment_neighbors(octos, SUBSCRIPT(ry, cx));
                 increment_neighbors(octos, SUBSCRIPT(r + ry, c + cx));
-                // flashes++;
             }
         }
     }
-
-    // for (int ry = max(0, r - 1); ry <= min(OCTO_ROWS, r + 1); ry++) {
-    //     for (int cx = max(0, c - 1); cx <= min(OCTO_COLS, c + 1); cx++) {
-    //         if (ry == 0 && cx == 0)
-    //             continue;
-
-    //         AT(octos, ry, cx)++;
-
-    //         if (AT(octos, ry, cx) == 10) {
-    //             flashes++;
-    //             flashes += increment_neighbors(octos, SUBSCRIPT(ry, cx));
-    //         }
-    //     }
-    // }
-
-    // for (int i = -1; i <= 1; i++) {
-    //     for (int j = -1; j <= 1; j++) {
-    //         if (i == 0 && j == 0)
-    //             continue;
-
-    //         if (r + i < 0 ||
-    //             c + j < 0 ||
-    //             r + i >= OCTO_ROWS ||
-    //             c + j >= OCTO_COLS)
-    //             continue;
-    //         AT(octos, r + i, c + j)++;
-
-    //         if (AT(octos, r + i, c + j) > 9)
-    //             increment_neighbors(octos, SUBSCRIPT(r + i, c + j));
-    //     }
-    // }
-    // prev row
-   //  if (r > 0) {
-   //      AT(octos, r - 1, c)++;
-   //      if (c > 0)                  AT(octos, r - 1, c - 1)++;
-   //      if (c < OCTO_COLS - 1)      AT(octos, r - 1, c + 1)++;
-   //  }
-
-   //   // main row
-   //  if (c > 0)                      AT(octos, r, c - 1)++;
-   //  if (c < OCTO_COLS - 1)          AT(octos, r, c + 1)++;
-
-   // // next row
-   //  if (r < OCTO_ROWS - 1) {
-   //      AT(octos, r + 1, c)++;
-   //      if (c > 0)                  AT(octos, r + 1, c - 1)++;
-   //      if (c < OCTO_COLS - 1)      AT(octos, r + 1, c + 1)++;
-   //  }
 }
 
 void reset_flashes(char *octos) {
